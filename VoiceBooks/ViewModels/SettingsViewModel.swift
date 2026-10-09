@@ -15,8 +15,8 @@ final class SettingsViewModel: ObservableObject {
     @Published var applying = false
 
     /// Pending (draft) default model + per-model speaker selections.
-    private var pendingModelId: String?
-    private var pendingSpeakerIds: [String: Int] = [:]
+    @Published private var pendingModelId: String?
+    @Published private var pendingSpeakerIds: [String: Int] = [:]
     private var draftInitialized = false
 
     private let services: AppServices
