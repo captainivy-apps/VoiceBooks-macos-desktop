@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct PlayerView: View {
     let services: AppServices
@@ -8,6 +9,9 @@ struct PlayerView: View {
     @State private var page: PlayerPage = .cover
     @State private var customSleepMinutes = 30
     @State private var showCustomSleep = false
+
+    private let subtitleFontSizeRange: ClosedRange<CGFloat> = 12...48
+    @State private var subtitleFontSize: CGFloat = NSFont.preferredFont(forTextStyle: .title3).pointSize + 3
 
     private enum PlayerPage: String, CaseIterable, Identifiable {
         case cover = "封面"
@@ -73,13 +77,38 @@ struct PlayerView: View {
                 Spacer()
             }
         case .subtitle:
-            ScrollView {
-                Text(state.currentSentenceText)
-                    .font(.title3)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(24)
-                    .textSelection(.enabled)
+            VStack(spacing: 0) {
+                HStack(spacing: 8) {
+                    Spacer()
+                    Button {
+                        adjustSubtitleFont(by: -1)
+                    } label: {
+                        Image(systemName: "textformat.size.smaller")
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(subtitleFontSize <= subtitleFontSizeRange.lowerBound)
+                    .help("缩小字幕字号")
+
+                    Button {
+                        adjustSubtitleFont(by: 1)
+                    } label: {
+                        Image(systemName: "textformat.size.larger")
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(subtitleFontSize >= subtitleFontSizeRange.upperBound)
+                    .help("放大字幕字号")
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+                ScrollView {
+                    Text(state.currentSentenceText)
+                        .font(.system(size: subtitleFontSize))
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(24)
+                        .textSelection(.enabled)
+                }
             }
         case .info:
             BookInfoPage(services: services, bookId: bookId)
@@ -197,6 +226,11 @@ struct PlayerView: View {
             }
             .padding(24)
         }
+    }
+
+    private func adjustSubtitleFont(by delta: CGFloat) {
+        subtitleFontSize = min(max(subtitleFontSize + delta, subtitleFontSizeRange.lowerBound),
+                               subtitleFontSizeRange.upperBound)
     }
 
     private func loadingStageText(_ stage: TtsLoadingStage) -> String {

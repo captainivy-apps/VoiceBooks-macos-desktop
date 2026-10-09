@@ -10,12 +10,14 @@ struct LibraryScreen: View {
     @State private var urlInput = ""
     @State private var showDeleteConfirm = false
 
+    private let bookListWidth: CGFloat = 320
+
     var body: some View {
         HSplitView {
             bookListColumn
-                .frame(minWidth: 260, idealWidth: 320, maxWidth: 420)
+                .frame(minWidth: bookListWidth, idealWidth: bookListWidth, maxWidth: bookListWidth)
             BookDetailColumn(services: services, bookId: selectedBookId, libraryVM: libraryVM)
-                .frame(minWidth: 460)
+                .frame(minWidth: 460, maxWidth: .infinity)
         }
         .navigationTitle("书库")
         .sheet(isPresented: $showUrlSheet) { urlSheet }
