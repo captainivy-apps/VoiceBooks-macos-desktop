@@ -33,6 +33,7 @@ final class SherpaTtsEngine {
     private var currentModelPath: String?
     private var currentModelType: String?
     private var modelSampleRate = 0
+    private var isShutdown = false
 
     func isReady() -> Bool {
         lock.lock(); defer { lock.unlock() }
@@ -46,6 +47,7 @@ final class SherpaTtsEngine {
 
     func loadModel(modelPath: String, modelType: String) -> SherpaModelLoadResult {
         lock.lock(); defer { lock.unlock() }
+        if isShutdown { return .failed(.nativeError, "engine shut down") }
         if currentModelPath == modelPath, currentModelType == modelType, tts != nil {
             return .success
         }
@@ -185,6 +187,15 @@ final class SherpaTtsEngine {
 
     func release() {
         lock.lock(); defer { lock.unlock() }
+        releaseLocked()
+    }
+
+    /// Permanently marks the engine as shut down and releases the native model.
+    /// After this, `loadModel` refuses to construct a new onnxruntime session,
+    /// so no native work can start once the process is tearing down.
+    func shutdown() {
+        lock.lock(); defer { lock.unlock() }
+        isShutdown = true
         releaseLocked()
     }
 

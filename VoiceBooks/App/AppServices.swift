@@ -105,5 +105,8 @@ final class AppServices: ObservableObject {
 
     func shutdown() {
         playbackEngine.shutdown()
+        ttsPreviewController.stopPlayback()
+        sherpaCoordinator.shutdown()
+        previewCoordinator.shutdown()
     }
 }

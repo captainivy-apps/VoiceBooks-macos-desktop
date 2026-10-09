@@ -145,8 +145,13 @@ final class SherpaInitCoordinator {
         stateLock.unlock()
     }
 
+    /// Mark the engine shut down (blocking out any new native call) and drain
+    /// the dedicated thread. This guarantees no Sherpa / onnxruntime call is in
+    /// flight while the process finalizes its C++ globals on exit (which
+    /// otherwise races and crashes with SIGSEGV).
     func shutdown() {
-        // The serial queue drains naturally; nothing to forcibly stop.
+        engine.shutdown()
+        queue.sync { }
     }
 
     private func hasEnoughFreeMemory() -> Bool {

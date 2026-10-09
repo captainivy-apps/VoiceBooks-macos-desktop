@@ -188,12 +188,23 @@ final class PlaybackEngine {
     func shutdown() {
         PlaybackController.shared.immediatePauseHandler = nil
         PlaybackController.shared.immediateResumeHandler = nil
+        isPlaying.set(false)
         stateLock.lock()
+        playbackSession += 1
         playbackJob?.cancel()
         playbackJob = nil
+        playFromCurrentJob?.cancel()
+        playFromCurrentJob = nil
+        startPlaybackJob?.cancel()
+        startPlaybackJob = nil
+        pauseFinalizeJob?.cancel()
+        pauseFinalizeJob = nil
         sleepTimerJob?.cancel()
         sleepTimerJob = nil
+        preloadsEnabled = false
         stateLock.unlock()
+        pcmPlayer.signalStopRequested()
+        pcmPlayer.pauseImmediately()
         cancelPreloads()
         pcmPlayer.release()
     }

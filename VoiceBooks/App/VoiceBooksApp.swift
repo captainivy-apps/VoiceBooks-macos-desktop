@@ -1,14 +1,31 @@
 import SwiftUI
+import AppKit
+
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    var services: AppServices?
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Quiesce all native Sherpa/onnxruntime work before `exit()` finalizes
+        // the C++ globals, otherwise the dedicated TTS thread races teardown
+        // and the app crashes (reported as "quit unexpectedly").
+        services?.shutdown()
+    }
+}
 
 @main
 struct VoiceBooksApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var services = AppServices()
 
     var body: some Scene {
         WindowGroup {
             RootView(services: services)
                 .frame(minWidth: 1000, minHeight: 680)
-                .task { services.start() }
+                .task {
+                    appDelegate.services = services
+                    services.start()
+                }
         }
         .windowStyle(.titleBar)
         .commands {
