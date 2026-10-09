@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# Xcode build output
+build/
+dist/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# Legacy Kotlin / Gradle reference build (kept on disk, not part of the app)
+.jdk/
+.gradle/
+.kotlin/
+desktop/
+build.gradle.kts
+settings.gradle.kts
+gradle/
+gradlew
+gradlew.bat
+gradle.properties
+local.properties
+*.iml
+.idea/
+
+# Local
+*.log

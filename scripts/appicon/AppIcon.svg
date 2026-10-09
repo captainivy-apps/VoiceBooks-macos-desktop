@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7A5FC7"/>
+      <stop offset="1" stop-color="#4F378B"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.26"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="iconShadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#2A1B52" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#iconShadow)">
+    <rect x="100" y="100" width="824" height="824" rx="184" ry="184" fill="url(#bg)"/>
+    <rect x="100" y="100" width="824" height="824" rx="184" ry="184" fill="url(#gloss)"/>
+  </g>
+
+  <!-- Open book -->
+  <g fill="#ffffff">
+    <path d="M250 400 Q400 360 500 410 L500 690 Q400 640 250 680 Z"/>
+    <path d="M774 400 Q624 360 524 410 L524 690 Q624 640 774 680 Z"/>
+  </g>
+  <g fill="#D0BCFF">
+    <path d="M500 410 L512 416 L512 700 L500 690 Z"/>
+  </g>
+
+  <!-- Sound waves -->
+  <g stroke="#EADDFF" stroke-width="26" stroke-linecap="round" fill="none">
+    <path d="M320 500 Q300 540 320 580"/>
+    <path d="M700 500 Q720 540 700 580"/>
+  </g>
+</svg>

@@ -1,0 +1,37 @@
+name: Build macOS App
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -switch /Applications/Xcode.app
+
+      - name: Test
+        run: |
+          xcodebuild -project VoiceBooks.xcodeproj -scheme VoiceBooks \
+            -configuration Debug -destination 'platform=macOS' test
+
+      - name: Build universal .app
+        run: bash scripts/build-universal.sh
+
+      - name: Verify architectures
+        run: lipo -info dist/VoiceBooks.app/Contents/MacOS/VoiceBooks
+
+      - name: Package artifact
+        run: |
+          cd dist
+          zip -qry VoiceBooks-macos-universal.zip VoiceBooks.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoiceBooks-macos-universal
+          path: dist/VoiceBooks-macos-universal.zip
