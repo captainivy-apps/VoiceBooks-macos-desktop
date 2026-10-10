@@ -15,6 +15,7 @@ enum AppSettings {
         static let sleepTimerMinutes = "sleep_timer_minutes"
         static let sleepUntilEnd = "sleep_until_end"
         static let ttsPreviewText = "tts_preview_text"
+        static let subtitleFontSize = "subtitle_font_size"
     }
 
     static var keepScreenOn: Bool {
@@ -71,6 +72,22 @@ enum AppSettings {
     static var ttsPreviewText: String {
         get { defaults.string(forKey: Key.ttsPreviewText) ?? "" }
         set { defaults.set(newValue, forKey: Key.ttsPreviewText) }
+    }
+
+    /// User-adjusted subtitle font size (points). `nil` means the user never
+    /// adjusted it, so callers fall back to their own default.
+    static var subtitleFontSize: Double? {
+        get {
+            guard defaults.object(forKey: Key.subtitleFontSize) != nil else { return nil }
+            return defaults.double(forKey: Key.subtitleFontSize)
+        }
+        set {
+            if let newValue {
+                defaults.set(newValue, forKey: Key.subtitleFontSize)
+            } else {
+                defaults.removeObject(forKey: Key.subtitleFontSize)
+            }
+        }
     }
 
     static func clearSleepTimer() {

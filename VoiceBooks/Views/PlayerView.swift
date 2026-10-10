@@ -11,7 +11,12 @@ struct PlayerView: View {
     @State private var showCustomSleep = false
 
     private let subtitleFontSizeRange: ClosedRange<CGFloat> = 12...48
-    @State private var subtitleFontSize: CGFloat = NSFont.preferredFont(forTextStyle: .title3).pointSize + 3
+    @State private var subtitleFontSize: CGFloat = PlayerView.defaultSubtitleFontSize
+
+    private static var defaultSubtitleFontSize: CGFloat {
+        if let stored = AppSettings.subtitleFontSize { return CGFloat(stored) }
+        return NSFont.preferredFont(forTextStyle: .title3).pointSize + 3
+    }
 
     private enum PlayerPage: String, CaseIterable, Identifiable {
         case cover = "封面"
@@ -229,8 +234,10 @@ struct PlayerView: View {
     }
 
     private func adjustSubtitleFont(by delta: CGFloat) {
-        subtitleFontSize = min(max(subtitleFontSize + delta, subtitleFontSizeRange.lowerBound),
-                               subtitleFontSizeRange.upperBound)
+        let clamped = min(max(subtitleFontSize + delta, subtitleFontSizeRange.lowerBound),
+                          subtitleFontSizeRange.upperBound)
+        subtitleFontSize = clamped
+        AppSettings.subtitleFontSize = Double(clamped)
     }
 
     private func loadingStageText(_ stage: TtsLoadingStage) -> String {
