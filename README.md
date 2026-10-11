@@ -37,8 +37,7 @@ bash scripts/build-universal.sh
 
 产物：`dist/VoiceBooks.app`（`arm64 + x86_64`）。
 
-> 说明：本项目已从 Kotlin + Compose Multiplatform 迁移为原生 SwiftUI。
-> 旧的 Kotlin/Gradle 源码仍保留在磁盘上作为参考（已在 `.gitignore` 中忽略），不再参与构建。
+> 说明：本项目已从 Kotlin + Compose Multiplatform 迁移为原生 SwiftUI，旧的 Kotlin/Gradle 工程已移除。
 
 ## 使用说明
 
