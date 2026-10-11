@@ -118,11 +118,13 @@ actor TtsRepository {
 
         let url: String
         if useMirror {
-            guard let mirror = BuiltInTtsModels.info(for: modelId)?.mirrorDownloadUrl else {
-                try? await ttsStore.updateDownloadState(modelId, state: .failed, localPath: nil, error: "该模型暂无镜像")
-                return .failure("该模型暂无镜像")
+            let base = AppSettings.ttsMirrorBaseUrl.trimmed
+            guard !base.isEmpty else {
+                try? await ttsStore.updateDownloadState(modelId, state: .failed, localPath: nil, error: "未配置镜像地址")
+                return .failure("未配置镜像地址")
             }
-            url = mirror
+            let normalized = base.hasSuffix("/") ? String(base.dropLast()) : base
+            url = "\(normalized)/\(modelId).tar.bz2"
         } else {
             url = model.downloadUrl
         }

@@ -102,6 +102,8 @@ struct SettingsScreen: View {
             Text("选择「选为默认」后点击底部「确认应用」以加载并切换离线引擎。")
                 .font(.caption).foregroundStyle(.secondary)
 
+            mirrorSettings
+
             Picker("语言", selection: Binding(
                 get: { viewModel.languageFilter ?? "all" },
                 set: { viewModel.selectLanguageFilter($0 == "all" ? nil : $0) }
@@ -121,6 +123,21 @@ struct SettingsScreen: View {
                 }
             }
         }
+    }
+
+    private var mirrorSettings: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("模型镜像地址").font(.headline)
+            Text("用于加速模型下载，留空则只使用官方源。下载时会在此地址后追加 /<模型ID>.tar.bz2。")
+                .font(.caption).foregroundStyle(.secondary)
+            TextField("https://…", text: Binding(
+                get: { viewModel.mirrorBaseUrl },
+                set: { viewModel.setMirrorBaseUrl($0) }
+            ))
+            .textFieldStyle(.roundedBorder)
+            .frame(maxWidth: 420)
+        }
+        .padding(.bottom, 4)
     }
 }
 
@@ -213,7 +230,7 @@ private struct TtsModelCard: View {
         case .notDownloaded, .failed:
             HStack {
                 Button("下载") { Task { await viewModel.downloadModel(model.id, useMirror: false) } }
-                if BuiltInTtsModels.info(for: model.id)?.mirrorDownloadUrl != nil {
+                if viewModel.hasMirrorConfigured {
                     Button("镜像下载") { Task { await viewModel.downloadModel(model.id, useMirror: true) } }
                 }
             }

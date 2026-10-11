@@ -107,7 +107,7 @@ final class TtsPreviewController {
                 sampleRate = rate
             }
             var samples = chunk.samples
-            gain.applyInPlace(&samples)
+            gain.applyInPlace(&samples, sampleRate: chunk.rate)
             if !playbackStarted {
                 player.ensurePlaying()
                 framesBefore = player.framesWritten

@@ -926,7 +926,7 @@ final class PlaybackEngine {
                     onChunk: { incoming in
                         if Task.isCancelled || !self.isPreloadsEnabled() { return 0 }
                         var mutable = incoming
-                        gain.applyInPlace(&mutable)
+                        gain.applyInPlace(&mutable, sampleRate: engineSampleRate)
                         if sampleRate == 0 { sampleRate = engineSampleRate }
                         pcmChunks.append(mutable)
                         samples.append(contentsOf: mutable)
@@ -936,7 +936,7 @@ final class PlaybackEngine {
                 if stats == nil || (stats?.totalSamples ?? 0) <= 0 {
                     if let batch = self.sherpaEngine.synthesize(text: chunk, speed: speed, speakerId: resolved), batch.isPlayable {
                         var mutable = batch.samples
-                        gain.applyInPlace(&mutable)
+                        gain.applyInPlace(&mutable, sampleRate: batch.sampleRate > 0 ? batch.sampleRate : engineSampleRate)
                         pcmChunks.append(mutable)
                         if sampleRate == 0 { sampleRate = batch.sampleRate }
                     } else {
@@ -1249,7 +1249,7 @@ final class PlaybackEngine {
     private func writeStreamChunk(samples: [Float], gain: StreamingGain, sampleRate: Int, state: StreamChunkWriteState) -> Int {
         guard sampleRate > 0, !samples.isEmpty else { return 0 }
         var mutable = samples
-        gain.applyInPlace(&mutable)
+        gain.applyInPlace(&mutable, sampleRate: sampleRate)
 
         let chunkDurationMs = Int64(mutable.count) * 1000 / Int64(sampleRate)
         if state.skipMs >= chunkDurationMs { state.skipMs -= chunkDurationMs; return 1 }

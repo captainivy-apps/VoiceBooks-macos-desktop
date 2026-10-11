@@ -3,7 +3,6 @@ import Foundation
 /// Built-in sherpa-onnx TTS model catalog (ported from the Kotlin build).
 enum BuiltInTtsModels {
     static let baseUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models"
-    static let mirrorBaseUrl = "https://www.galaxyrover.com/mirrors"
 
     static let models: [TtsModelInfo] = [
         entry("vits-melo-tts-zh_en", "中英双语 MeloTTS", "zh+en", 163000000, 1, "vits", .vits),
@@ -28,13 +27,13 @@ enum BuiltInTtsModels {
         entry("vits-zh-hf-doom", "中文男声 Doom", "zh", 117770000, 804, "vits", .vits),
         entry("vits-zh-hf-fanchen-ZhiHuiLaoZhe_new", "中文男声 智慧老者（新版）", "zh", 116668000, 1, "vits", .vits),
         entry("vits-zh-hf-fanchen-unity", "中文男声 Unity", "zh", 116530000, 804, "vits", .vits),
-        entry("vits-piper-zh_CN-xiao_ya-medium", "中文女声 小雅", "zh", 57700000, 1, "vits", .vits, mirror: true),
+        entry("vits-piper-zh_CN-xiao_ya-medium", "中文女声 小雅", "zh", 57700000, 1, "vits", .vits),
         entry("vits-piper-zh_CN-chaowen-medium", "中文男声 超文", "zh", 57600000, 1, "vits", .vits),
         entry("vits-piper-zh_CN-xiao_ya-medium-int8", "中文女声 小雅（轻量）", "zh", 13400000, 1, "vits", .vits),
         entry("vits-piper-zh_CN-chaowen-medium-int8", "中文男声 超文（轻量）", "zh", 13400000, 1, "vits", .vits),
         entry("vits-cantonese-hf-xiaomaiiwn", "粤语女声 小麦", "yue", 105464000, 804, "vits", .vits),
         entry("vits-melo-tts-en", "英文 MeloTTS", "en", 158944000, 1, "vits", .vits),
-        entry("vits-piper-en_US-amy-low", "English Amy", "en", 65523000, 1, "vits", .vits, mirror: true),
+        entry("vits-piper-en_US-amy-low", "English Amy", "en", 65523000, 1, "vits", .vits),
         entry("vits-piper-en_US-kristin-medium", "English Kristin", "en", 65683000, 1, "vits", .vits),
         entry("vits-piper-en_GB-cori-medium", "English Cori (英式)", "en", 65681000, 1, "vits", .vits),
         entry("vits-piper-en_US-ryan-medium", "English Ryan", "en", 65638000, 1, "vits", .vits),
@@ -72,11 +71,10 @@ enum BuiltInTtsModels {
     static func info(for id: String) -> TtsModelInfo? { models.first { $0.id == id } }
 
     private static func entry(_ id: String, _ name: String, _ language: String, _ size: Int64,
-        _ speakers: Int, _ type: String, _ family: TtsModelFamily, mirror: Bool = false) -> TtsModelInfo {
+        _ speakers: Int, _ type: String, _ family: TtsModelFamily) -> TtsModelInfo {
         TtsModelInfo(
             id: id, name: name, language: language, sizeBytes: size,
             downloadUrl: "\(baseUrl)/\(id).tar.bz2",
-            mirrorDownloadUrl: mirror ? "\(mirrorBaseUrl)/\(id).tar.bz2" : nil,
             modelType: type, family: family, speakerCount: speakers)
     }
 }

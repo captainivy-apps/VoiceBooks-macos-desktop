@@ -83,7 +83,6 @@ struct TtsModelInfo: Identifiable, Equatable {
     let language: String
     let sizeBytes: Int64
     let downloadUrl: String
-    var mirrorDownloadUrl: String? = nil
     var modelType: String = "vits"
     var family: TtsModelFamily = .vits
     var speakerId: Int = 0
@@ -96,7 +95,6 @@ struct TtsModelInfo: Identifiable, Equatable {
         language: String,
         sizeBytes: Int64,
         downloadUrl: String,
-        mirrorDownloadUrl: String? = nil,
         modelType: String = "vits",
         family: TtsModelFamily = .vits,
         speakerId: Int = 0,
@@ -108,7 +106,6 @@ struct TtsModelInfo: Identifiable, Equatable {
         self.language = language
         self.sizeBytes = sizeBytes
         self.downloadUrl = downloadUrl
-        self.mirrorDownloadUrl = mirrorDownloadUrl
         self.modelType = modelType
         self.family = family
         self.speakerId = speakerId

@@ -15,6 +15,7 @@ enum AppSettings {
         static let sleepTimerMinutes = "sleep_timer_minutes"
         static let sleepUntilEnd = "sleep_until_end"
         static let ttsPreviewText = "tts_preview_text"
+        static let ttsMirrorBaseUrl = "tts_mirror_base_url"
         static let subtitleFontSize = "subtitle_font_size"
     }
 
@@ -72,6 +73,13 @@ enum AppSettings {
     static var ttsPreviewText: String {
         get { defaults.string(forKey: Key.ttsPreviewText) ?? "" }
         set { defaults.set(newValue, forKey: Key.ttsPreviewText) }
+    }
+
+    /// User-configured base URL for TTS model mirrors. Empty by default; when
+    /// empty the mirror download option is unavailable.
+    static var ttsMirrorBaseUrl: String {
+        get { defaults.string(forKey: Key.ttsMirrorBaseUrl) ?? "" }
+        set { defaults.set(newValue, forKey: Key.ttsMirrorBaseUrl) }
     }
 
     /// User-adjusted subtitle font size (points). `nil` means the user never

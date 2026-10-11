@@ -8,6 +8,7 @@ final class SettingsViewModel: ObservableObject {
     @Published var languageFilter: String? = nil
     @Published var keepScreenOn = true
     @Published var previewText = ""
+    @Published var mirrorBaseUrl = ""
     @Published var engineSwitchState: EngineSwitchState = .idle
     @Published var downloadProgress: [String: Float] = [:]
     @Published var previewingModelId: String?
@@ -34,6 +35,7 @@ final class SettingsViewModel: ObservableObject {
         benchmarks = (try? await services.ttsRepository.allBenchmarks()) ?? []
         keepScreenOn = AppSettings.keepScreenOn
         previewText = AppSettings.ttsPreviewText
+        mirrorBaseUrl = AppSettings.ttsMirrorBaseUrl
         if !draftInitialized {
             pendingModelId = defaultModelId
             pendingSpeakerIds = Dictionary(uniqueKeysWithValues: models.map { ($0.id, $0.speakerId) })
@@ -50,6 +52,14 @@ final class SettingsViewModel: ObservableObject {
         previewText = value
         AppSettings.ttsPreviewText = value
     }
+
+    func setMirrorBaseUrl(_ value: String) {
+        mirrorBaseUrl = value
+        AppSettings.ttsMirrorBaseUrl = value
+    }
+
+    /// Whether a mirror base URL has been configured by the user.
+    var hasMirrorConfigured: Bool { !mirrorBaseUrl.trimmed.isEmpty }
 
     func selectLanguageFilter(_ groupId: String?) {
         languageFilter = groupId
