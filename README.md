@@ -5,7 +5,7 @@
 **导入 EPUB → 逐句离线 TTS 朗读（sherpa-onnx）→ 断点续播与书库管理。**
 
 - 本地优先：书籍、封面、正文、句索引、TTS 模型均保存在本机
-- 离线 TTS：sherpa-onnx（VITS / Kokoro / Kitten），模型按需下载、可切换默认音色
+- 离线 TTS：sherpa-onnx（VITS / Matcha / Kokoro / Kitten），模型按需下载、可切换默认音色
 - 通用二进制：`arm64` + `x86_64`（Intel 与 Apple Silicon）
 
 ## 功能一览
@@ -43,7 +43,8 @@ bash scripts/build-universal.sh
 ## 使用说明
 
 - 播放前需在「设置 → TTS 引擎管理」中**下载并设为默认**离线模型。
-- 中文推荐：`vits-piper-zh_CN-xiao_ya-medium`（高品质）或 int8 版本（轻量）。
+- 中文推荐：`vits-piper-zh_CN-xiao_ya-medium`（女声）或 `vits-piper-zh_CN-chaowen-medium`（男声）。
+- 中英双语：`matcha-icefall-zh-en`（Matcha，CPU 优化，推荐）或 `vits-melo-tts-zh_en`。
 - 英文推荐：`vits-piper-en_US-lessac-medium`。
 - 未下载模型时无法播放，会提示前往设置下载。
 

@@ -20,7 +20,7 @@ struct SherpaModelLoadResult {
     }
 }
 
-/// Native sherpa-onnx offline TTS engine (VITS / Kokoro / Kitten).
+/// Native sherpa-onnx offline TTS engine (VITS / Matcha / Kokoro / Kitten).
 final class SherpaTtsEngine {
     let engineId = "sherpa_onnx"
     let engineName = "Sherpa-ONNX"
@@ -63,12 +63,7 @@ final class SherpaTtsEngine {
             return .failed(.invalidLayout)
         }
 
-        let numThreads: Int
-        if modelType == "kokoro" || modelType == "kitten" {
-            numThreads = 1
-        } else {
-            numThreads = min(max(ProcessInfo.processInfo.activeProcessorCount, 2), 4)
-        }
+        let numThreads = min(max(ProcessInfo.processInfo.activeProcessorCount, 2), 4)
 
         let wrapper = Self.createWrapper(modelDir: modelDir, modelType: modelType, assets: assets, numThreads: numThreads)
         guard wrapper.tts != nil else {
@@ -223,6 +218,27 @@ final class SherpaTtsEngine {
         let tokens = "\(dir)/tokens.txt"
 
         switch modelType {
+        case "matcha":
+            let matcha = sherpaOnnxOfflineTtsMatchaModelConfig(
+                acousticModel: modelPath,
+                vocoder: assets.vocoder,
+                lexicon: abs(assets.lexicon),
+                tokens: tokens,
+                dataDir: assets.dataDir,
+                dictDir: assets.dictDir
+            )
+            var config = sherpaOnnxOfflineTtsConfig(
+                model: sherpaOnnxOfflineTtsModelConfig(
+                    matcha: matcha,
+                    numThreads: numThreads,
+                    debug: 0,
+                    provider: "cpu"
+                ),
+                ruleFsts: assets.ruleFsts,
+                ruleFars: "",
+                maxNumSentences: 1
+            )
+            return withUnsafePointer(to: &config) { SherpaOnnxOfflineTtsWrapper(config: $0) }
         case "kitten":
             let kitten = sherpaOnnxOfflineTtsKittenModelConfig(
                 model: modelPath,

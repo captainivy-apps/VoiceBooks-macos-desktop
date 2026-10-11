@@ -30,11 +30,13 @@ enum SortOrder: String {
 
 enum TtsModelFamily: String {
     case vits
+    case matcha
     case kokoro
     case kitten
 
     static func from(modelType: String) -> TtsModelFamily {
         switch modelType {
+        case "matcha": return .matcha
         case "kokoro": return .kokoro
         case "kitten": return .kitten
         default: return .vits
@@ -77,12 +79,22 @@ struct SentenceIndexSlice {
     let textPreview: String
 }
 
+/// An extra file that must be fetched alongside a model archive (for example a
+/// Matcha vocoder hosted in the separate `vocoder-models` release).
+struct TtsAuxiliaryFile: Equatable {
+    let url: String
+    let relativePath: String
+}
+
 struct TtsModelInfo: Identifiable, Equatable {
     let id: String
     let name: String
     let language: String
     let sizeBytes: Int64
     let downloadUrl: String
+    var fileBaseUrl: String? = nil
+    var files: [String] = []
+    var auxiliaryFiles: [TtsAuxiliaryFile] = []
     var modelType: String = "vits"
     var family: TtsModelFamily = .vits
     var speakerId: Int = 0
@@ -95,6 +107,9 @@ struct TtsModelInfo: Identifiable, Equatable {
         language: String,
         sizeBytes: Int64,
         downloadUrl: String,
+        fileBaseUrl: String? = nil,
+        files: [String] = [],
+        auxiliaryFiles: [TtsAuxiliaryFile] = [],
         modelType: String = "vits",
         family: TtsModelFamily = .vits,
         speakerId: Int = 0,
@@ -106,6 +121,9 @@ struct TtsModelInfo: Identifiable, Equatable {
         self.language = language
         self.sizeBytes = sizeBytes
         self.downloadUrl = downloadUrl
+        self.fileBaseUrl = fileBaseUrl
+        self.files = files
+        self.auxiliaryFiles = auxiliaryFiles
         self.modelType = modelType
         self.family = family
         self.speakerId = speakerId

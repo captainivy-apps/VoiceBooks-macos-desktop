@@ -1,6 +1,6 @@
 import Foundation
 
-/// Resolves the on-disk model layout for VITS / Kokoro / Kitten models.
+/// Resolves the on-disk model layout for VITS / Matcha / Kokoro / Kitten models.
 /// Mirrors the Kotlin `resolveTtsAssets` rules.
 struct ResolvedTtsAssets {
     var modelName: String
@@ -9,6 +9,7 @@ struct ResolvedTtsAssets {
     var dataDir: String
     var dictDir: String
     var ruleFsts: String
+    var vocoder: String = ""
 }
 
 enum TtsAssetResolver {
@@ -21,6 +22,7 @@ enum TtsAssetResolver {
 
     static func resolve(modelDir: URL, modelType: String) -> ResolvedTtsAssets? {
         switch modelType {
+        case "matcha": return resolveMatcha(modelDir)
         case "kokoro": return resolveKokoro(modelDir)
         case "kitten": return resolveKitten(modelDir)
         default: return resolveVits(modelDir)
@@ -50,18 +52,11 @@ enum TtsAssetResolver {
 
     private static func resolveVits(_ modelDir: URL) -> ResolvedTtsAssets? {
         guard let children = children(of: modelDir) else { return nil }
-        let preferInt8 = name(modelDir).lowercased().contains("int8")
         let onnxCandidates = children.filter {
             isFile($0) && ext($0) == "onnx" && !name($0).lowercased().contains("espeak")
         }
-        let onnxFile: URL?
-        if preferInt8 {
-            onnxFile = onnxCandidates.first { name($0).lowercased().contains("int8") }
-                ?? onnxCandidates.first { !name($0).lowercased().contains("int8") }
-        } else {
-            onnxFile = onnxCandidates.first { !name($0).lowercased().contains("int8") }
-                ?? onnxCandidates.first
-        }
+        let onnxFile = onnxCandidates.first { !name($0).lowercased().contains("int8") }
+            ?? onnxCandidates.first
         guard let onnxFile else { return nil }
         guard isFile(modelDir.appendingPathComponent("tokens.txt")) else { return nil }
 
@@ -88,6 +83,35 @@ enum TtsAssetResolver {
         return ResolvedTtsAssets(
             modelName: name(onnxFile), voices: "", lexicon: lexicon,
             dataDir: dataDir, dictDir: dictDir, ruleFsts: ruleFsts
+        )
+    }
+
+    private static func resolveMatcha(_ modelDir: URL) -> ResolvedTtsAssets? {
+        guard let children = children(of: modelDir) else { return nil }
+        guard isFile(modelDir.appendingPathComponent("tokens.txt")) else { return nil }
+        guard let espeakDir = children.first(where: {
+            isDirectory($0) && (name($0).lowercased().contains("espeak") || name($0) == "espeak-ng-data")
+        }) else { return nil }
+
+        let onnxFiles = children.filter { isFile($0) && ext($0) == "onnx" }
+        guard let acousticFile = onnxFiles.first(where: { name($0).lowercased().hasPrefix("model") }) else {
+            return nil
+        }
+        guard let vocoderFile = onnxFiles.first(where: { name($0).lowercased().contains("vocos") }) else {
+            return nil
+        }
+
+        let lexiconFile = children.first { isFile($0) && name($0) == "lexicon.txt" }
+        let ruleFsts = kokoroFstFiles
+            .map { modelDir.appendingPathComponent($0) }
+            .filter { isFile($0) }
+            .map { $0.path }
+            .joined(separator: ",")
+
+        return ResolvedTtsAssets(
+            modelName: name(acousticFile), voices: "", lexicon: lexiconFile.map { name($0) } ?? "",
+            dataDir: espeakDir.path, dictDir: "", ruleFsts: ruleFsts,
+            vocoder: vocoderFile.path
         )
     }
 

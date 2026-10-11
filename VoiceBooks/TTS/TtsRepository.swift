@@ -57,6 +57,21 @@ actor TtsRepository {
             try? await ttsStore.clearDefault()
             try? await ttsStore.setDefault(first.id)
             AppSettings.defaultTtsEngine = first.id
+            return
+        }
+
+        // Drop catalog entries that no longer exist (e.g. removed int8 variants)
+        // and fall back to the first catalog model if the default was removed.
+        let catalogIds = Set(BuiltInTtsModels.models.map { $0.id })
+        for model in existing where !catalogIds.contains(model.id) {
+            await deleteModel(model.id)
+            try? await ttsStore.deleteModel(model.id)
+        }
+
+        if (try? await ttsStore.getDefaultModel()) == nil, let first = BuiltInTtsModels.models.first {
+            try? await ttsStore.clearDefault()
+            try? await ttsStore.setDefault(first.id)
+            AppSettings.defaultTtsEngine = first.id
         }
     }
 
@@ -116,25 +131,58 @@ actor TtsRepository {
         try? FileManager.default.removeItem(at: targetDir)
         Paths.createIfNeeded(targetDir)
 
-        let url: String
-        if useMirror {
-            let base = AppSettings.ttsMirrorBaseUrl.trimmed
-            guard !base.isEmpty else {
-                try? await ttsStore.updateDownloadState(modelId, state: .failed, localPath: nil, error: "未配置镜像地址")
-                return .failure("未配置镜像地址")
-            }
-            let normalized = base.hasSuffix("/") ? String(base.dropLast()) : base
-            url = "\(normalized)/\(modelId).tar.bz2"
-        } else {
-            url = model.downloadUrl
-        }
+        let info = BuiltInTtsModels.info(for: modelId)
+        let auxiliaryFiles = info?.auxiliaryFiles ?? []
+        let hasAuxiliary = !auxiliaryFiles.isEmpty
 
-        let result = await downloader.downloadAndExtract(url: url, targetDir: targetDir, onProgress: onProgress)
+        let url: String
+        let result: TtsModelDownloadResult
+        if let base = info?.fileBaseUrl, !(info?.files.isEmpty ?? true) {
+            result = await downloader.downloadFiles(
+                baseUrl: base, files: info?.files ?? [], targetDir: targetDir, onProgress: onProgress
+            )
+        } else {
+            if useMirror {
+                let base = AppSettings.ttsMirrorBaseUrl.trimmed
+                guard !base.isEmpty else {
+                    try? await ttsStore.updateDownloadState(modelId, state: .failed, localPath: nil, error: "未配置镜像地址")
+                    return .failure("未配置镜像地址")
+                }
+                let normalized = base.hasSuffix("/") ? String(base.dropLast()) : base
+                url = "\(normalized)/\(modelId).tar.bz2"
+            } else {
+                url = model.downloadUrl
+            }
+            let archiveProgress: (Float) -> Void = hasAuxiliary ? { onProgress($0 * 0.85) } : onProgress
+            result = await downloader.downloadAndExtract(
+                url: url, targetDir: targetDir, onProgress: archiveProgress
+            )
+        }
         if case .failure(let message) = result {
             cleanupPartialDownload(modelId)
             try? await ttsStore.updateDownloadState(modelId, state: .failed, localPath: nil, error: message)
             return result
         }
+
+        if hasAuxiliary {
+            let total = Float(auxiliaryFiles.count)
+            for (index, aux) in auxiliaryFiles.enumerated() {
+                let destination = targetDir.appendingPathComponent(aux.relativePath)
+                let auxProgress: (Float) -> Void = { fraction in
+                    onProgress(0.85 + (Float(index) + fraction) / total * 0.15)
+                }
+                let auxResult = await downloader.downloadFile(
+                    url: aux.url, to: destination, onProgress: auxProgress
+                )
+                if case .failure(let message) = auxResult {
+                    cleanupPartialDownload(modelId)
+                    try? await ttsStore.updateDownloadState(modelId, state: .failed, localPath: nil, error: message)
+                    return .failure(message)
+                }
+            }
+            onProgress(1)
+        }
+
         if TtsAssetResolver.isModelLayoutValid(targetDir, modelType: model.modelType) {
             try? await ttsStore.updateDownloadState(modelId, state: .downloaded, localPath: targetDir.path, error: nil)
             return .success
