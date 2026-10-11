@@ -110,7 +110,7 @@ final class PlaybackEngine {
     private static let maxSherpaTextChars = 400
     private static let minSherpaSpeed: Float = 0.5
     private static let maxSherpaSpeed: Float = 3.0
-    private static let maxPreloadAhead = 8
+    private static let maxPreloadAhead = 12
     private static let initRetryDelayMs: Int64 = 200
     private static let preloadAwaitPolls = 40
     private static let preloadAwaitPollMs: UInt64 = 25
@@ -1061,58 +1061,60 @@ final class PlaybackEngine {
         let sampleRate = cached.sampleRate
         var playbackStarted = false
 
-        return await sherpaInitCoordinator.withSherpaThreadAsync {
-            if !self.preparePcmPlayer(sampleRate: sampleRate) {
-                return .failed(userMessage: PlaybackMessages.errorAudioInit, logDetail: "pcm prepare failed rate=\(sampleRate)")
+        // NOTE: cached playback only writes to the ring buffer and waits on the
+        // playback head; it never touches the native engine. Running it off the
+        // single sherpa thread lets preload synthesis proceed concurrently with
+        // playback, so the next sentence is ready before the current one ends.
+        if !preparePcmPlayer(sampleRate: sampleRate) {
+            return .failed(userMessage: PlaybackMessages.errorAudioInit, logDetail: "pcm prepare failed rate=\(sampleRate)")
+        }
+        let framesBeforeSentence = pcmPlayer.framesWritten
+        markSentencePlaybackStart(sampleRate: sampleRate)
+
+        for chunk in cached.pcmChunks {
+            if !isPlaying.get() || session != currentSession() { return .interrupted }
+            let chunkDurationMs = Int64(chunk.count) * 1000 / Int64(sampleRate)
+            if skipMs >= chunkDurationMs { skipMs -= chunkDurationMs; continue }
+            let skipSamples = skipMs > 0 ? Int(skipMs * Int64(sampleRate) / 1000) : 0
+            skipMs = 0
+
+            if !playbackStarted {
+                if !pcmPlayer.isInitialized, !preparePcmPlayer(sampleRate: sampleRate) {
+                    return .failed(userMessage: PlaybackMessages.errorAudioInit, logDetail: "cached prepare failed")
+                }
+                if notifyOnNextPlay { markOutputtingAudioIfStartup() }
+                pcmPlayer.ensurePlaying()
+                playbackStarted = true
+                notifyStreamPlaybackStarted(notifyStartup: notifyOnNextPlay, subtitle: pendingSubtitle, sentenceIndex: sentenceIndex)
+                notifyOnNextPlay = false
+                pendingSubtitle = nil
             }
-            let framesBeforeSentence = self.pcmPlayer.framesWritten
-            self.markSentencePlaybackStart(sampleRate: sampleRate)
 
-            for chunk in cached.pcmChunks {
-                if !self.isPlaying.get() || session != self.currentSession() { return .interrupted }
-                let chunkDurationMs = Int64(chunk.count) * 1000 / Int64(sampleRate)
-                if skipMs >= chunkDurationMs { skipMs -= chunkDurationMs; continue }
-                let skipSamples = skipMs > 0 ? Int(skipMs * Int64(sampleRate) / 1000) : 0
-                skipMs = 0
-
-                if !playbackStarted {
-                    if !self.pcmPlayer.isInitialized, !self.preparePcmPlayer(sampleRate: sampleRate) {
-                        return .failed(userMessage: PlaybackMessages.errorAudioInit, logDetail: "cached prepare failed")
-                    }
-                    if notifyOnNextPlay { self.markOutputtingAudioIfStartup() }
-                    self.pcmPlayer.ensurePlaying()
-                    playbackStarted = true
-                    self.notifyStreamPlaybackStarted(notifyStartup: notifyOnNextPlay, subtitle: pendingSubtitle, sentenceIndex: sentenceIndex)
-                    notifyOnNextPlay = false
-                    pendingSubtitle = nil
-                }
-
-                let shouldContinue = { self.isPlaying.get() && session == self.currentSession() }
-                let written = skipSamples > 0
-                    ? self.pcmPlayer.writeSamplesFromOffset(chunk, startSample: skipSamples, shouldContinue: shouldContinue)
-                    : self.pcmPlayer.writeSamples(chunk, shouldContinue: shouldContinue)
-                if written < 0 {
-                    if !self.isPlaying.get() { return .interrupted }
-                    return .failed(userMessage: PlaybackMessages.errorAudioWrite, logDetail: "cached write failed index=\(sentenceIndex)")
-                }
-                if !self.isPlaying.get() || session != self.currentSession() { return .interrupted }
-
-                if playbackStarted {
-                    await self.waitForSentencePlayback(session: session, framesBeforeWrite: framesBeforeSentence, framesEnd: self.pcmPlayer.framesWritten, sampleRate: sampleRate, progressBaseMs: startMs, sentenceIndex: sentenceIndex)
-                    if !self.isPlaying.get() || session != self.currentSession() { return .interrupted }
-                }
+            let shouldContinue = { self.isPlaying.get() && session == self.currentSession() }
+            let written = skipSamples > 0
+                ? pcmPlayer.writeSamplesFromOffset(chunk, startSample: skipSamples, shouldContinue: shouldContinue)
+                : pcmPlayer.writeSamples(chunk, shouldContinue: shouldContinue)
+            if written < 0 {
+                if !isPlaying.get() { return .interrupted }
+                return .failed(userMessage: PlaybackMessages.errorAudioWrite, logDetail: "cached write failed index=\(sentenceIndex)")
             }
+            if !isPlaying.get() || session != currentSession() { return .interrupted }
 
             if playbackStarted {
-                let head = self.pcmPlayer.playbackHeadFrames()
-                let writtenFrames = self.pcmPlayer.framesWritten - framesBeforeSentence
-                let playedFrames = max(head - framesBeforeSentence, 0)
-                if writtenFrames > 0, playedFrames == 0 {
-                    return .failed(userMessage: PlaybackMessages.errorAudioWrite, logDetail: "cached head never advanced")
-                }
+                await waitForSentencePlayback(session: session, framesBeforeWrite: framesBeforeSentence, framesEnd: pcmPlayer.framesWritten, sampleRate: sampleRate, progressBaseMs: startMs, sentenceIndex: sentenceIndex)
+                if !isPlaying.get() || session != currentSession() { return .interrupted }
             }
-            return .completed
         }
+
+        if playbackStarted {
+            let head = pcmPlayer.playbackHeadFrames()
+            let writtenFrames = pcmPlayer.framesWritten - framesBeforeSentence
+            let playedFrames = max(head - framesBeforeSentence, 0)
+            if writtenFrames > 0, playedFrames == 0 {
+                return .failed(userMessage: PlaybackMessages.errorAudioWrite, logDetail: "cached head never advanced")
+            }
+        }
+        return .completed
     }
 
     private func streamSynthAndPlay(text: String, startMs: Int64, notifyStartup: Bool, sentenceIndex: Int) async -> SherpaPlayResult {
