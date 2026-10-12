@@ -165,14 +165,16 @@ actor TtsRepository {
         }
 
         if hasAuxiliary {
+            let mirrorBaseUrl = useMirror ? AppSettings.ttsMirrorBaseUrl : nil
             let total = Float(auxiliaryFiles.count)
             for (index, aux) in auxiliaryFiles.enumerated() {
                 let destination = targetDir.appendingPathComponent(aux.relativePath)
+                let sourceURL = Self.auxiliarySourceURL(aux, mirrorBaseUrl: mirrorBaseUrl)
                 let auxProgress: (Float) -> Void = { fraction in
                     onProgress(0.85 + (Float(index) + fraction) / total * 0.15)
                 }
                 let auxResult = await downloader.downloadFile(
-                    url: aux.url, to: destination, onProgress: auxProgress
+                    url: sourceURL, to: destination, onProgress: auxProgress
                 )
                 if case .failure(let message) = auxResult {
                     cleanupPartialDownload(modelId)
@@ -191,6 +193,17 @@ actor TtsRepository {
         let error = "模型文件不完整或格式无效"
         try? await ttsStore.updateDownloadState(modelId, state: .failed, localPath: nil, error: error)
         return .failure(error)
+    }
+
+    /// Resolves the download URL for an auxiliary model file. When a mirror base
+    /// URL is configured, auxiliary files are expected to be served flat under
+    /// it by their filename (e.g. `<mirror>/vocos-16khz-univ.onnx`).
+    nonisolated static func auxiliarySourceURL(_ aux: TtsAuxiliaryFile, mirrorBaseUrl: String?) -> String {
+        let trimmed = mirrorBaseUrl?.trimmed ?? ""
+        guard !trimmed.isEmpty else { return aux.url }
+        let base = trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
+        let filename = aux.relativePath.split(separator: "/").last.map(String.init) ?? aux.relativePath
+        return "\(base)/\(filename)"
     }
 
     func recoverInterruptedDownloads() async {

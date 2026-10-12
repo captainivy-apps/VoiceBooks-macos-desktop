@@ -39,7 +39,26 @@ fi
 echo "==> Copying to $DIST_DIR"
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
-cp -R "$BUILT_APP" "$DIST_DIR/"
+ditto "$BUILT_APP" "$DIST_DIR/$APP_NAME.app"
+
+# The upstream onnxruntime xcframework ships malformed self-referential
+# symlinks (e.g. `Versions/A/A -> A`). They break `codesign --deep` with
+# "Too many levels of symbolic links", so strip them and re-sign (ad-hoc).
+echo "==> Sanitizing embedded framework symlinks"
+find "$DIST_DIR/$APP_NAME.app/Contents/Frameworks" -type l 2>/dev/null | while IFS= read -r link; do
+    name="$(basename "$link")"
+    target="$(readlink "$link" 2>/dev/null || true)"
+    parent="$(basename "$(dirname "$link")")"
+    if [[ "$target" == "$name" || "$parent" == "$name" ]]; then
+        rm -f "$link"
+    fi
+done
+
+echo "==> Re-signing (ad-hoc, to match the pruned bundle)"
+codesign --force --deep --sign - "$DIST_DIR/$APP_NAME.app"
+
+echo "==> Verifying signature"
+codesign --verify --deep --strict "$DIST_DIR/$APP_NAME.app"
 
 echo "==> Verifying architectures"
 lipo -info "$DIST_DIR/$APP_NAME.app/Contents/MacOS/$APP_NAME"

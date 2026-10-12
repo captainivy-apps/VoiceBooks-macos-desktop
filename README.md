@@ -79,7 +79,7 @@ VoiceBooks/
   Utils/                        # 日志 / 格式化 / MD5 / 字符串
 Support/                        # Info.plist / entitlements
 VoiceBooksTests/                # XCTest（纯逻辑移植自旧版单测）
-scripts/                        # build-universal / render-appicon
+scripts/                        # build-universal / render-appicon / tts-model-mirror
 ```
 
 ## 许可

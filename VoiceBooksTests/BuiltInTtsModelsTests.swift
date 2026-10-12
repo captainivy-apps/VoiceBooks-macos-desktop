@@ -56,6 +56,21 @@ final class BuiltInTtsModelsTests: XCTestCase {
         XCTAssertFalse(TtsAssetResolver.isModelLayoutValid(dir, modelType: "matcha"))
     }
 
+    func testAuxiliarySourceURLUsesMirrorWhenConfigured() {
+        let aux = TtsAuxiliaryFile(
+            url: "https://github.com/k2-fsa/sherpa-onnx/releases/download/vocoder-models/vocos-16khz-univ.onnx",
+            relativePath: "vocos-16khz-univ.onnx")
+
+        XCTAssertEqual(TtsRepository.auxiliarySourceURL(aux, mirrorBaseUrl: nil), aux.url)
+        XCTAssertEqual(TtsRepository.auxiliarySourceURL(aux, mirrorBaseUrl: "   "), aux.url)
+        XCTAssertEqual(
+            TtsRepository.auxiliarySourceURL(aux, mirrorBaseUrl: "https://www.galaxyrover.com/mirrors"),
+            "https://www.galaxyrover.com/mirrors/vocos-16khz-univ.onnx")
+        XCTAssertEqual(
+            TtsRepository.auxiliarySourceURL(aux, mirrorBaseUrl: "https://www.galaxyrover.com/mirrors/"),
+            "https://www.galaxyrover.com/mirrors/vocos-16khz-univ.onnx")
+    }
+
     private func makeMatchaDir(includeVocoder: Bool) throws -> URL {
         let dir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("matcha-\(UUID().uuidString)")
